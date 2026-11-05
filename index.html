@@ -222,6 +222,7 @@
         .status-bar { position: fixed; bottom: 40px; left: 12px; z-index: 100; display: flex; gap: 4px; pointer-events: none; flex-wrap: wrap; max-width: 200px; }
         .status-icon { background: rgba(12, 10, 8, 0.8); border: 1px solid #6b5a3a; border-radius: 4px; padding: 1px 6px; font-size: 0.65rem; color: #ffd966; }
 
+        /* 双摇杆视觉 */
         .joystick-visual {
             position: fixed; border-radius: 50%; pointer-events: none; z-index: 50;
             border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05);
@@ -231,6 +232,13 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 40px; height: 40px; border-radius: 50%;
             background: rgba(96, 208, 255, 0.4); border: 2px solid rgba(96, 208, 255, 0.8);
+        }
+        /* 攻击摇杆（红色） */
+        .joystick-attack {
+            border-color: rgba(255, 100, 100, 0.3); background: rgba(255, 100, 100, 0.05);
+        }
+        .joystick-attack .joystick-thumb {
+            background: rgba(255, 80, 80, 0.5); border-color: rgba(255, 80, 80, 0.9);
         }
 
         @media (max-height: 500px) {
@@ -356,8 +364,13 @@
     <div class="level-badge">Lv.<span id="levelNum">1</span></div>
     <div class="xp-bar"><div id="xpFill" class="xp-fill"></div><div class="xp-text" id="xpText">0 / 10</div></div>
 
+    <!-- 左摇杆（移动） -->
     <div class="joystick-visual" id="joystickBase">
         <div class="joystick-thumb" id="joystickThumb"></div>
+    </div>
+    <!-- 右摇杆（攻击） -->
+    <div class="joystick-visual joystick-attack" id="joyAttackBase">
+        <div class="joystick-thumb" id="joyAttackThumb"></div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -461,10 +474,17 @@
 
         const cam = { x:0, y:0 };
         const keys = { w:false,a:false,s:false,d:false };
+        
+        // 双摇杆状态
         let joystickActive = false;
         let joystickStartX = 0, joystickStartY = 0;
         let joystickCurrentX = 0, joystickCurrentY = 0;
         let joystickMoveX = 0, joystickMoveY = 0;
+
+        let attackJoyActive = false;
+        let attackJoyStartX = 0, attackJoyStartY = 0;
+        let attackJoyCurrentX = 0, attackJoyCurrentY = 0;
+        let attackJoyMoveX = 0, attackJoyMoveY = 0;
 
         let mouseWorld = { x: player.x+100, y: player.y };
 
@@ -596,6 +616,7 @@
             document.getElementById('bossBar').classList.add('show');
         }
 
+        // 键盘输入（PC端）
         window.addEventListener('keydown', e => {
             if (gamePaused || gameState !== 'playing' || settings.aiControl) return;
             const k = e.key.toLowerCase();
@@ -627,11 +648,13 @@
         });
         canvas.addEventListener('contextmenu', e => e.preventDefault());
 
+        // ================= 移动端双摇杆核心逻辑 =================
         const joyBase = document.getElementById('joystickBase');
         const joyThumb = document.getElementById('joystickThumb');
+        const joyAttackBase = document.getElementById('joyAttackBase');
+        const joyAttackThumb = document.getElementById('joyAttackThumb');
         const JOY_RADIUS = 50;
 
-        // ================= 移动端手感优化核心 =================
         canvas.addEventListener('touchstart', e => {
             e.preventDefault();
             if (gamePaused || gameState !== 'playing' || settings.aiControl) return;
@@ -643,7 +666,7 @@
                 const touchY = touch.clientY - rect.top;
 
                 if (touchX < window.innerWidth / 2) {
-                    // 左侧摇杆
+                    // 左摇杆（移动）
                     if (!joystickActive) {
                         joystickActive = true;
                         joystickStartX = touchX;
@@ -659,12 +682,25 @@
                         joyThumb.style.transform = 'translate(-50%, -50%)';
                     }
                 } else {
-                    // 右侧攻击（直接转换为世界坐标，立刻触发攻击）
-                    const worldX = (touch.clientX - rect.left) * (canvas.width / rect.width) + cam.x;
-                    const worldY = (touch.clientY - rect.top) * (canvas.height / rect.height) + cam.y;
-                    mouseWorld.x = worldX;
-                    mouseWorld.y = worldY;
-                    tryAttack();
+                    // 右摇杆（攻击）
+                    if (!attackJoyActive) {
+                        attackJoyActive = true;
+                        attackJoyStartX = touchX;
+                        attackJoyStartY = touchY;
+                        attackJoyCurrentX = touchX;
+                        attackJoyCurrentY = touchY;
+                        
+                        joyAttackBase.style.display = 'block';
+                        joyAttackBase.style.left = touchX + 'px';
+                        joyAttackBase.style.top = touchY + 'px';
+                        joyAttackBase.style.width = (JOY_RADIUS*2) + 'px';
+                        joyAttackBase.style.height = (JOY_RADIUS*2) + 'px';
+                        joyAttackThumb.style.transform = 'translate(-50%, -50%)';
+                        
+                        // 点击瞬间直接朝这个方向攻击一次
+                        attackJoyMoveX = 1; attackJoyMoveY = 0;
+                        updateAttackDirection();
+                    }
                 }
             }
         }, { passive: false });
@@ -680,7 +716,7 @@
                 const touchY = touch.clientY - rect.top;
 
                 if (touchX < window.innerWidth / 2) {
-                    // 左侧拖动
+                    // 更新移动摇杆
                     if (joystickActive && Math.hypot(touchX - joystickStartX, touchY - joystickStartY) < JOY_RADIUS * 3) {
                         joystickCurrentX = touchX;
                         joystickCurrentY = touchY;
@@ -699,12 +735,26 @@
                         joystickMoveY = dy / JOY_RADIUS;
                     }
                 } else {
-                    // 右侧滑动连击（切水果手感）
-                    const worldX = (touch.clientX - rect.left) * (canvas.width / rect.width) + cam.x;
-                    const worldY = (touch.clientY - rect.top) * (canvas.height / rect.height) + cam.y;
-                    mouseWorld.x = worldX;
-                    mouseWorld.y = worldY;
-                    tryAttack();
+                    // 更新攻击摇杆
+                    if (attackJoyActive && Math.hypot(touchX - attackJoyStartX, touchY - attackJoyStartY) < JOY_RADIUS * 3) {
+                        attackJoyCurrentX = touchX;
+                        attackJoyCurrentY = touchY;
+                        
+                        let dx = attackJoyCurrentX - attackJoyStartX;
+                        let dy = attackJoyCurrentY - attackJoyStartY;
+                        const dist = Math.hypot(dx, dy);
+                        
+                        if (dist > JOY_RADIUS) {
+                            dx = (dx / dist) * JOY_RADIUS;
+                            dy = (dy / dist) * JOY_RADIUS;
+                        }
+                        
+                        joyAttackThumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                        attackJoyMoveX = dx / JOY_RADIUS;
+                        attackJoyMoveY = dy / JOY_RADIUS;
+                        
+                        updateAttackDirection();
+                    }
                 }
             }
         }, { passive: false });
@@ -723,15 +773,29 @@
                     joystickMoveX = 0;
                     joystickMoveY = 0;
                 }
+                if (Math.hypot(touchX - attackJoyStartX, touchY - attackJoyStartY) < JOY_RADIUS * 3) {
+                    attackJoyActive = false;
+                    joyAttackBase.style.display = 'none';
+                    attackJoyMoveX = 0;
+                    attackJoyMoveY = 0;
+                }
             }
         }, { passive: false });
 
         canvas.addEventListener('touchcancel', e => {
-            joystickActive = false;
-            joyBase.style.display = 'none';
-            joystickMoveX = 0;
-            joystickMoveY = 0;
+            joystickActive = false; joyBase.style.display = 'none'; joystickMoveX = 0; joystickMoveY = 0;
+            attackJoyActive = false; joyAttackBase.style.display = 'none'; attackJoyMoveX = 0; attackJoyMoveY = 0;
         });
+
+        // 右摇杆控制攻击方向
+        function updateAttackDirection() {
+            if (Math.abs(attackJoyMoveX) > 0.1 || Math.abs(attackJoyMoveY) > 0.1) {
+                const angle = Math.atan2(attackJoyMoveY, attackJoyMoveX);
+                player.facing = angle;
+                // 只要推了摇杆，就自动尝试攻击
+                tryAttack(true);
+            }
+        }
         // ==============================================
 
         const settingsMenu = document.getElementById('settingsMenu');
@@ -771,11 +835,8 @@
         bindToggle('setAI', 'aiControl', (val) => { 
             if (val) { 
                 keys.w = keys.a = keys.s = keys.d = false; 
-                joystickActive = false;
-                joyBase.style.display = 'none';
-                joystickMoveX = 0; joystickMoveY = 0; 
-            } else {
-                joystickMoveX = 0; joystickMoveY = 0;
+                joystickActive = false; joyBase.style.display = 'none'; joystickMoveX = 0; joystickMoveY = 0; 
+                attackJoyActive = false; joyAttackBase.style.display = 'none'; attackJoyMoveX = 0; attackJoyMoveY = 0;
             }
         });
 
@@ -791,35 +852,20 @@
             document.getElementById('sfxVolVal').innerText = e.target.value + '%';
         });
 
-        // 移动端攻击手感优化：取消前摇/后摇的硬直，直接出刀
-        function tryAttack(){
+        function tryAttack(isTouch = false){
             const a = player.attack;
             if (a.state === 'idle' && a.cooldown <= 0) {
-                // 如果是触摸屏，减少前摇，增加跟手度
-                a.windupDur = 0.05; 
+                // 触摸端取消前摇
+                a.windupDur = isTouch ? 0.05 : 0.14;
                 a.state = 'windup';
                 a.t = 0; a.hitSet.clear();
                 
-                // 如果有敌人，优先朝向最近的敌人（自动索敌）
-                let targetX = mouseWorld.x;
-                let targetY = mouseWorld.y;
-                
-                // 移动端智能索敌
-                if ('ontouchstart' in window) {
-                    let closestEnemy = null;
-                    let minDist = 200; // 索敌范围
-                    for (const e of enemies) {
-                        const d = Math.hypot(e.x - player.x, e.y - player.y);
-                        if (d < minDist) { minDist = d; closestEnemy = e; }
-                    }
-                    if (closestEnemy) {
-                        targetX = closestEnemy.x;
-                        targetY = closestEnemy.y;
-                    }
+                // 如果是 PC 端鼠标攻击，计算朝向
+                if (!isTouch && !settings.aiControl) {
+                    const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
+                    player.facing = Math.atan2(dy, dx);
                 }
 
-                const dx = targetX - player.x, dy = targetY - player.y;
-                player.facing = Math.atan2(dy, dx);
                 a.swingFrom = player.facing - 1.5;
                 a.swingTo = player.facing + 1.2;
                 a.swordAngle = a.swingFrom;
@@ -1025,7 +1071,7 @@
             player.y = Math.max(player.radius, Math.min(WORLD_H-player.radius, player.y));
 
             const atk = player.attack;
-            if (atk.state === 'idle' && !joystickActive && !settings.aiControl){
+            if (atk.state === 'idle' && !joystickActive && !attackJoyActive && !settings.aiControl){
                 const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
                 if (dx || dy) player.facing = Math.atan2(dy, dx);
             }
@@ -1387,6 +1433,7 @@
             if (player.bloodlust > 0 && player.hp < player.maxHp){ player.hp = Math.min(player.maxHp, player.hp + player.bloodlust); spawnParticles(player.x, player.y, 6, '#ff6688', { spd: 2.5, life: 0.4, size: 2 }); }
             if (player.echoStrike > 0) player.echoTimer = 3;
 
+            // ===== 修复：只有打死真正的 BOSS 才能胜利 =====
             if (e.type === 'boss') {
                 bossActive = false;
                 document.getElementById('bossBar').classList.remove('show');
