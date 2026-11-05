@@ -168,7 +168,6 @@
             background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.08), transparent 70%);
             pointer-events: none;
         }
-
         .card.rarity-common { border-color: #5a6a7a; }
         .card.rarity-common:hover { border-color: #8a9aaa; box-shadow: 0 15px 35px rgba(138,154,170,0.3); }
         .card.rarity-rare { border-color: #3a6a4a; }
@@ -368,26 +367,62 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const bgm = new Audio('music.mp3');
-        bgm.loop = true; bgm.volume = 0.45;
-        const swingSound = new Audio('sword-swing-sound.mp3');
-        swingSound.volume = 0.6;
+        // ================= 纯代码音频系统 =================
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
         let audioUnlocked = false;
+        
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+        }
+
+        function playSwingSound() {
+            if (!audioUnlocked || !audioCtx) return;
+            const bufferSize = audioCtx.sampleRate * 0.15;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 800;
+            filter.Q.value = 1.5;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.5 * settings.sfxVol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        let bgmOsc = null;
+        let bgmGain = null;
+        function startBGM() {
+            if (!audioCtx || bgmOsc) return;
+            bgmOsc = audioCtx.createOscillator();
+            bgmOsc.type = 'sine';
+            bgmOsc.frequency.value = 55;
+            bgmGain = audioCtx.createGain();
+            bgmGain.gain.value = 0.1 * settings.bgmVol;
+            bgmOsc.connect(bgmGain);
+            bgmGain.connect(audioCtx.destination);
+            bgmOsc.start();
+        }
+
         function unlockAudio() {
             if (!audioUnlocked) {
                 audioUnlocked = true;
-                bgm.play().catch(e => {});
+                initAudio();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                startBGM();
             }
         }
         window.addEventListener('touchstart', unlockAudio, { once: true });
         window.addEventListener('mousedown', unlockAudio, { once: true });
-
-        function playSwingSound() {
-            if (!audioUnlocked) return;
-            const soundClone = swingSound.cloneNode();
-            soundClone.volume = swingSound.volume;
-            soundClone.play().catch(e => {});
-        }
 
         const settings = {
             shake: true, redFlash: true, blood: true, damageNumbers: true,
@@ -533,7 +568,7 @@
         }
 
         function endGame(win) {
-            if (gameState !== 'playing') return; // 防止重复触发
+            if (gameState !== 'playing') return;
             gameState = win ? 'win' : 'lose';
             document.getElementById('resultTitle').innerText = win ? '🏆 挑战成功' : '💀 挑战失败';
             document.getElementById('resultTitle').style.color = win ? '#ffd966' : '#ff6060';
@@ -596,6 +631,7 @@
         const joyThumb = document.getElementById('joystickThumb');
         const JOY_RADIUS = 50;
 
+        // ================= 移动端手感优化核心 =================
         canvas.addEventListener('touchstart', e => {
             e.preventDefault();
             if (gamePaused || gameState !== 'playing' || settings.aiControl) return;
@@ -607,6 +643,7 @@
                 const touchY = touch.clientY - rect.top;
 
                 if (touchX < window.innerWidth / 2) {
+                    // 左侧摇杆
                     if (!joystickActive) {
                         joystickActive = true;
                         joystickStartX = touchX;
@@ -622,6 +659,7 @@
                         joyThumb.style.transform = 'translate(-50%, -50%)';
                     }
                 } else {
+                    // 右侧攻击（直接转换为世界坐标，立刻触发攻击）
                     const worldX = (touch.clientX - rect.left) * (canvas.width / rect.width) + cam.x;
                     const worldY = (touch.clientY - rect.top) * (canvas.height / rect.height) + cam.y;
                     mouseWorld.x = worldX;
@@ -633,7 +671,7 @@
 
         canvas.addEventListener('touchmove', e => {
             e.preventDefault();
-            if (!joystickActive || settings.aiControl) return;
+            if (settings.aiControl) return;
 
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
@@ -641,23 +679,32 @@
                 const touchX = touch.clientX - rect.left;
                 const touchY = touch.clientY - rect.top;
 
-                if (Math.hypot(touchX - joystickStartX, touchY - joystickStartY) < JOY_RADIUS * 2.5) {
-                    joystickCurrentX = touchX;
-                    joystickCurrentY = touchY;
-                    
-                    let dx = joystickCurrentX - joystickStartX;
-                    let dy = joystickCurrentY - joystickStartY;
-                    const dist = Math.hypot(dx, dy);
-                    
-                    if (dist > JOY_RADIUS) {
-                        dx = (dx / dist) * JOY_RADIUS;
-                        dy = (dy / dist) * JOY_RADIUS;
+                if (touchX < window.innerWidth / 2) {
+                    // 左侧拖动
+                    if (joystickActive && Math.hypot(touchX - joystickStartX, touchY - joystickStartY) < JOY_RADIUS * 3) {
+                        joystickCurrentX = touchX;
+                        joystickCurrentY = touchY;
+                        
+                        let dx = joystickCurrentX - joystickStartX;
+                        let dy = joystickCurrentY - joystickStartY;
+                        const dist = Math.hypot(dx, dy);
+                        
+                        if (dist > JOY_RADIUS) {
+                            dx = (dx / dist) * JOY_RADIUS;
+                            dy = (dy / dist) * JOY_RADIUS;
+                        }
+                        
+                        joyThumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                        joystickMoveX = dx / JOY_RADIUS;
+                        joystickMoveY = dy / JOY_RADIUS;
                     }
-                    
-                    joyThumb.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                    
-                    joystickMoveX = dx / JOY_RADIUS;
-                    joystickMoveY = dy / JOY_RADIUS;
+                } else {
+                    // 右侧滑动连击（切水果手感）
+                    const worldX = (touch.clientX - rect.left) * (canvas.width / rect.width) + cam.x;
+                    const worldY = (touch.clientY - rect.top) * (canvas.height / rect.height) + cam.y;
+                    mouseWorld.x = worldX;
+                    mouseWorld.y = worldY;
+                    tryAttack();
                 }
             }
         }, { passive: false });
@@ -670,7 +717,7 @@
                 const touchX = touch.clientX - rect.left;
                 const touchY = touch.clientY - rect.top;
                 
-                if (Math.hypot(touchX - joystickStartX, touchY - joystickStartY) < JOY_RADIUS * 2.5) {
+                if (Math.hypot(touchX - joystickStartX, touchY - joystickStartY) < JOY_RADIUS * 3) {
                     joystickActive = false;
                     joyBase.style.display = 'none';
                     joystickMoveX = 0;
@@ -685,6 +732,7 @@
             joystickMoveX = 0;
             joystickMoveY = 0;
         });
+        // ==============================================
 
         const settingsMenu = document.getElementById('settingsMenu');
         document.getElementById('settingsBtn').addEventListener('click', (e) => {
@@ -735,20 +783,42 @@
             settings.aiAggression = parseInt(e.target.value);
         });
         document.getElementById('setBgmVol').addEventListener('input', (e) => {
-            settings.bgmVol = e.target.value / 100; bgm.volume = settings.bgmVol;
+            settings.bgmVol = e.target.value / 100; if(bgmGain) bgmGain.gain.value = 0.1 * settings.bgmVol;
             document.getElementById('bgmVolVal').innerText = e.target.value + '%';
         });
         document.getElementById('setSfxVol').addEventListener('input', (e) => {
-            settings.sfxVol = e.target.value / 100; swingSound.volume = settings.sfxVol;
+            settings.sfxVol = e.target.value / 100; 
             document.getElementById('sfxVolVal').innerText = e.target.value + '%';
         });
 
+        // 移动端攻击手感优化：取消前摇/后摇的硬直，直接出刀
         function tryAttack(){
             const a = player.attack;
             if (a.state === 'idle' && a.cooldown <= 0) {
+                // 如果是触摸屏，减少前摇，增加跟手度
+                a.windupDur = 0.05; 
                 a.state = 'windup';
                 a.t = 0; a.hitSet.clear();
-                const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
+                
+                // 如果有敌人，优先朝向最近的敌人（自动索敌）
+                let targetX = mouseWorld.x;
+                let targetY = mouseWorld.y;
+                
+                // 移动端智能索敌
+                if ('ontouchstart' in window) {
+                    let closestEnemy = null;
+                    let minDist = 200; // 索敌范围
+                    for (const e of enemies) {
+                        const d = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (d < minDist) { minDist = d; closestEnemy = e; }
+                    }
+                    if (closestEnemy) {
+                        targetX = closestEnemy.x;
+                        targetY = closestEnemy.y;
+                    }
+                }
+
+                const dx = targetX - player.x, dy = targetY - player.y;
                 player.facing = Math.atan2(dy, dx);
                 a.swingFrom = player.facing - 1.5;
                 a.swingTo = player.facing + 1.2;
@@ -1161,14 +1231,12 @@
             document.getElementById('hpFill').style.width = Math.max(0, player.hp/player.maxHp*100) + '%';
             document.getElementById('hpText').innerText = Math.max(0,Math.floor(player.hp)) + ' / ' + player.maxHp;
             
-            // BOSS 血条更新
             if (bossActive && bossRef) {
                 if (bossRef.hp > 0 && enemies.includes(bossRef)) {
                     const pct = (bossRef.hp / bossRef.maxHp) * 100;
                     document.getElementById('bossFill').style.width = pct + '%';
                     document.getElementById('bossText').innerText = `深渊领主 (${Math.ceil(bossRef.hp)} / ${bossRef.maxHp})`;
                 } else if (bossRef.hp <= 0 && enemies.includes(bossRef)) {
-                    // 血量归零立即标记，但等待 killEnemy 处理完毕
                     document.getElementById('bossFill').style.width = '0%';
                 }
             }
@@ -1319,7 +1387,6 @@
             if (player.bloodlust > 0 && player.hp < player.maxHp){ player.hp = Math.min(player.maxHp, player.hp + player.bloodlust); spawnParticles(player.x, player.y, 6, '#ff6688', { spd: 2.5, life: 0.4, size: 2 }); }
             if (player.echoStrike > 0) player.echoTimer = 3;
 
-            // BOSS 击杀判断
             if (e.type === 'boss') {
                 bossActive = false;
                 document.getElementById('bossBar').classList.remove('show');
