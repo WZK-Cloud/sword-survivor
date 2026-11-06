@@ -149,6 +149,22 @@
         .action-btn.primary { background: #1a4a6a; border-color: #3a8aaa; color: #aaddff; }
         .action-btn.primary:hover { background: #2a6a9a; box-shadow: 0 0 15px rgba(60,180,255,0.3); }
 
+        /* 排行榜列表样式 */
+        .leaderboard-list { text-align: left; max-width: 500px; margin: 0 auto; max-height: 50vh; overflow-y: auto; padding-right: 10px; }
+        .lb-row { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #3a4a5a; font-size: 0.9rem; color: #e8dcc8; }
+        .lb-row:nth-child(1) { color: #ffd966; font-weight: bold; font-size: 1.1rem; background: rgba(255,217,102,0.1); border-radius: 4px; }
+        .lb-row:nth-child(2) { color: #d0d0d0; }
+        .lb-row:nth-child(3) { color: #c08050; }
+
+        /* 名字输入框 */
+        .name-input {
+            width: 100%; max-width: 300px; padding: 12px; margin: 20px auto;
+            background: #111822; border: 2px solid #4a5a6a; border-radius: 8px;
+            color: #fff; font-size: 1.1rem; font-family: inherit; text-align: center;
+            outline: none; transition: border-color 0.2s;
+        }
+        .name-input:focus { border-color: #60d0ff; }
+
         .cards { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; perspective: 1000px; padding: 10px; }
         .card {
             width: 160px; min-height: 230px;
@@ -315,13 +331,13 @@
         <div>请将手机横置以获得最佳体验</div>
     </div>
 
-    <!-- 侧边主菜单界面 -->
     <div class="main-menu" id="mainMenu">
         <div class="game-title">巨剑幸存者</div>
         <div class="game-subtitle">GIANT SWORD SURVIVOR</div>
         
         <div class="menu-buttons">
             <button class="menu-btn primary" onclick="startGameFromMenu()">进入游戏</button>
+            <button class="menu-btn" onclick="openLeaderboard()">🏆 全服排行榜</button>
             <button class="menu-btn" onclick="openLevelSelectFromMenu()">选择关卡</button>
             <button class="menu-btn" onclick="toggleSettingsFromMenu()">游戏设置</button>
         </div>
@@ -407,6 +423,33 @@
         </div>
     </div>
 
+    <!-- 新增弹窗：输入名字 -->
+    <div class="overlay" id="nameInputOverlay">
+        <div class="popup-box">
+            <div class="popup-title" id="finalStats">游戏结束</div>
+            <div class="popup-sub">登上全服排行榜！</div>
+            <input type="text" id="playerNameInput" class="name-input" placeholder="输入你的名字" maxlength="10">
+            <div class="btn-group">
+                <button class="action-btn primary" onclick="submitScore()">提交分数</button>
+                <button class="action-btn" onclick="closeNameInput()">跳过</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增弹窗：排行榜 -->
+    <div class="overlay" id="leaderboardOverlay">
+        <div class="popup-box">
+            <div class="popup-title">🏆 全服排行榜</div>
+            <div class="popup-sub">击杀数最高的前 50 名玩家</div>
+            <div class="leaderboard-list" id="leaderboardList">
+                <div style="text-align:center; color:#8a9aaa;">加载中...</div>
+            </div>
+            <div class="btn-group">
+                <button class="action-btn primary" onclick="closeLeaderboard()">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <div class="settings-menu" id="settingsMenu">
         <div class="settings-title">⚙️ 设置</div>
         <div class="setting-group">画面与特效</div>
@@ -445,11 +488,81 @@
     <canvas id="gameCanvas"></canvas>
 
     <script>
+    // ================= 后端接口配置 =================
+    // 注意：这里填你真实的 Worker 域名！
+    const API_BASE = 'https://survivor-api.wzk121-2026.workers.dev';
+
+    window.currentKills = 0;
+    window.currentTime = 0;
+
+    function openLeaderboard() {
+        document.getElementById('leaderboardOverlay').classList.add('show');
+        const listEl = document.getElementById('leaderboardList');
+        listEl.innerHTML = '<div style="text-align:center; color:#8a9aaa;">加载中...</div>';
+        
+        fetch(`${API_BASE}/leaderboard`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; color:#8a9aaa;">暂无数据，快去创造记录吧！</div>';
+                    return;
+                }
+                listEl.innerHTML = data.map((row, index) => {
+                    return `<div class="lb-row">
+                        <span>#${index + 1} ${row.player_name}</span>
+                        <span>击杀: ${row.kill_count} | 存活: ${row.time_seconds} 秒</span>
+                    </div>`;
+                }).join('');
+            })
+            .catch(err => {
+                listEl.innerHTML = '<div style="text-align:center; color:#ff6060;">接口连接失败(域名可能被墙或未生效)</div>';
+            });
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboardOverlay').classList.remove('show');
+    }
+
+    function showNameInput(kills, time) {
+        window.currentKills = kills;
+        window.currentTime = time;
+        document.getElementById('finalStats').innerText = `击杀: ${kills} | 存活: ${time} 秒`;
+        document.getElementById('nameInputOverlay').classList.add('show');
+    }
+
+    function closeNameInput() {
+        document.getElementById('nameInputOverlay').classList.remove('show');
+        document.getElementById('playerNameInput').value = '';
+    }
+
+    function submitScore() {
+        const name = document.getElementById('playerNameInput').value.trim();
+        if (!name) { alert("请输入名字！"); return; }
+
+        fetch(`${API_BASE}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, kills: window.currentKills, time: window.currentTime })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeNameInput();
+                openLeaderboard();
+            } else {
+                alert("提交失败: " + data.error);
+            }
+        })
+        .catch(err => {
+            alert("提交失败，请检查网络（Worker域名可能被墙）");
+        });
+    }
+
+    // ================= 游戏核心逻辑 =================
     (function(){
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ================= 纯代码音频系统 =================
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
         let audioUnlocked = false;
@@ -697,6 +810,9 @@
             document.getElementById('resultDesc').innerText = win ? '你完成了目标！' : (currentMode === 'survival' ? '时间耗尽前你倒下了' : '你未能完成击杀目标');
             document.getElementById('resultKills').innerText = killCount;
             document.getElementById('resultOverlay').classList.add('show');
+            
+            // 调起输入名字排行榜
+            showNameInput(killCount, Math.floor(gameTimer));
         }
 
         function spawnBoss() {
@@ -718,7 +834,7 @@
             document.getElementById('bossBar').classList.add('show');
         }
 
-        // 输入控制
+        // 输入控制... (下面我精简了游戏核心逻辑，保留了所有必要的操作，您直接覆盖即可)
         window.addEventListener('keydown', e => {
             if (gamePaused || gameState !== 'playing' || settings.aiControl) return;
             const k = e.key.toLowerCase();
@@ -954,12 +1070,10 @@
                 a.state = 'windup';
                 a.t = 0; a.hitSet.clear();
                 
-                // 如果是AI或玩家鼠标，计算朝向
                 if (!isTouch && !settings.aiControl) {
                     const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
                     player.facing = Math.atan2(dy, dx);
                 } else if (settings.aiControl || gameState === 'menu') {
-                    // 在背景演示或AI托管时，强制朝向最近的敌人
                     let closestEnemy = null, minDist = 9999;
                     for (const e of enemies) { const d = Math.hypot(e.x - player.x, e.y - player.y); if (d < minDist) { minDist = d; closestEnemy = e; } }
                     if (closestEnemy) {
@@ -1218,7 +1332,6 @@
                 }
             }
 
-            // 副武器逻辑
             if (player.wFireOrb > 0) {
                 player.wFireOrbTimer += dt;
                 player.wFireOrbAngle += dt * 3;
@@ -1296,7 +1409,6 @@
             }
             if (player.invincible){ player.invTimer -= dt; if (player.invTimer <= 0) player.invincible = false; }
 
-            // 特效更新
             for (let i=particles.length-1; i>=0; i--){ const p=particles[i]; p.life-=dt; if(p.life<=0){particles.splice(i,1);continue;} p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; p.vy+=p.gravity*dt*60; p.vx*=0.97; p.vy*=0.97; }
             for (let i=bloodStains.length-1; i>=0; i--){ const b=bloodStains[i]; b.life-=dt; if(b.life<=0){bloodStains.splice(i,1);continue;} b.alpha=0.55*Math.min(1,b.life/(b.maxLife*0.5)); }
             for (let i=slashArcs.length-1; i>=0; i--){ const a=slashArcs[i]; a.life-=dt; if(a.life<=0)slashArcs.splice(i,1); }
