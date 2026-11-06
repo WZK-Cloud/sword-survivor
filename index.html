@@ -149,7 +149,6 @@
         .action-btn.primary { background: #1a4a6a; border-color: #3a8aaa; color: #aaddff; }
         .action-btn.primary:hover { background: #2a6a9a; box-shadow: 0 0 15px rgba(60,180,255,0.3); }
 
-        /* 升级卡片 */
         .cards { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; perspective: 1000px; padding: 10px; }
         .card {
             width: 160px; min-height: 230px;
@@ -223,7 +222,6 @@
         .status-bar { position: fixed; bottom: 40px; left: 12px; z-index: 100; display: flex; gap: 4px; pointer-events: none; flex-wrap: wrap; max-width: 200px; }
         .status-icon { background: rgba(12, 10, 8, 0.8); border: 1px solid #6b5a3a; border-radius: 4px; padding: 1px 6px; font-size: 0.65rem; color: #ffd966; }
 
-        /* 双摇杆视觉 */
         .joystick-visual {
             position: fixed; border-radius: 50%; pointer-events: none; z-index: 50;
             border: 2px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.05);
@@ -234,7 +232,6 @@
             width: 40px; height: 40px; border-radius: 50%;
             background: rgba(96, 208, 255, 0.4); border: 2px solid rgba(96, 208, 255, 0.8);
         }
-        /* 攻击摇杆（红色） */
         .joystick-attack {
             border-color: rgba(255, 100, 100, 0.3); background: rgba(255, 100, 100, 0.05);
         }
@@ -242,12 +239,17 @@
             background: rgba(255, 80, 80, 0.5); border-color: rgba(255, 80, 80, 0.9);
         }
 
-        /* ================= 主菜单专属样式 ================= */
+        /* ================= 侧边主菜单样式 ================= */
         .main-menu {
-            position: fixed; inset: 0; z-index: 300;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle at center, #1a2028 0%, #080a0e 100%);
+            position: fixed; top: 0; bottom: 0; left: 0; width: 400px; z-index: 300;
+            display: flex; flex-direction: column; justify-content: center;
+            padding-left: 50px;
+            background: linear-gradient(90deg, rgba(8,10,14,0.95) 0%, rgba(8,10,14,0.8) 60%, rgba(8,10,14,0) 100%);
             transition: opacity 0.5s ease;
+            pointer-events: auto;
+        }
+        @media(max-width: 768px) {
+            .main-menu { width: 100%; padding-left: 20px; background: rgba(8,10,14,0.85); align-items: center; padding-left: 0; }
         }
         .main-menu.hidden { opacity: 0; pointer-events: none; }
         
@@ -256,34 +258,36 @@
             text-shadow: 0 0 20px rgba(255,217,102,0.6), 0 4px 10px #000;
             margin-bottom: 10px; animation: titlePulse 3s infinite;
         }
-        @media(min-width: 768px) { .game-title { font-size: 4.5rem; } }
+        @media(min-width: 768px) { .game-title { font-size: 4rem; } }
         
         .game-subtitle {
-            color: #8a9aaa; font-size: 1rem; letter-spacing: 4px; margin-bottom: 50px;
+            color: #8a9aaa; font-size: 0.9rem; letter-spacing: 4px; margin-bottom: 40px;
         }
 
-        .menu-buttons { display: flex; flex-direction: column; gap: 20px; width: 260px; }
+        .menu-buttons { display: flex; flex-direction: column; gap: 15px; width: 260px; z-index: 310; }
         
         .menu-btn {
-            background: linear-gradient(90deg, rgba(30,40,54,0.8), rgba(15,20,30,0.8));
-            border: 2px solid #3a4a5a; color: #e8f0ff; font-size: 1.2rem; font-weight: bold;
-            padding: 15px 0; border-radius: 12px; cursor: pointer;
+            background: linear-gradient(90deg, rgba(30,40,54,0.9), rgba(15,20,30,0.9));
+            border: 2px solid #3a4a5a; color: #e8f0ff; font-size: 1.1rem; font-weight: bold;
+            padding: 15px 0; border-radius: 8px; cursor: pointer;
             transition: all 0.2s; letter-spacing: 2px; position: relative; overflow: hidden;
+            z-index: 310;
         }
         .menu-btn::before {
             content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.5s;
         }
-        .menu-btn:hover { transform: scale(1.05); border-color: #60d0ff; box-shadow: 0 0 20px rgba(96,208,255,0.3); }
+        .menu-btn:hover { transform: translateX(5px); border-color: #60d0ff; box-shadow: 0 0 20px rgba(96,208,255,0.3); }
         .menu-btn:hover::before { left: 100%; }
         .menu-btn.primary { border-color: #c8a030; color: #ffd966; text-shadow: 0 0 10px rgba(255,217,102,0.5); }
         .menu-btn.primary:hover { border-color: #ffe060; box-shadow: 0 0 20px rgba(255,220,80,0.4); }
         
         .instructions {
-            position: absolute; bottom: 30px; color: #5a6a7a; font-size: 0.8rem;
-            text-align: center; line-height: 1.6;
+            position: absolute; bottom: 30px; left: 50px; color: #5a6a7a; font-size: 0.75rem;
+            line-height: 1.6;
         }
+        @media(max-width: 768px) { .instructions { left: 0; width: 100%; text-align: center; } }
         .instructions span { color: #ffd966; }
 
         @keyframes titlePulse {
@@ -312,13 +316,13 @@
         <div>请将手机横置以获得最佳体验</div>
     </div>
 
-    <!-- ================= 主菜单界面 ================= -->
+    <!-- 侧边主菜单界面 -->
     <div class="main-menu" id="mainMenu">
         <div class="game-title">巨剑幸存者</div>
-        <div class="game-subtitle">G I A N T &nbsp; S W O R D &nbsp; S U R V I V O R</div>
+        <div class="game-subtitle">GIANT SWORD SURVIVOR</div>
         
         <div class="menu-buttons">
-            <button class="menu-btn primary" onclick="startGameFromMenu('endless')">进入游戏</button>
+            <button class="menu-btn primary" onclick="startGameFromMenu()">进入游戏</button>
             <button class="menu-btn" onclick="openLevelSelectFromMenu()">选择关卡</button>
             <button class="menu-btn" onclick="toggleSettingsFromMenu()">游戏设置</button>
         </div>
@@ -517,7 +521,7 @@
         };
 
         let currentMode = 'endless'; 
-        let gameState = 'menu'; // 初始化状态为菜单
+        let gameState = 'menu'; // 默认进入菜单状态
         let gameTimer = 0;
         let requiredKills = 0;
         let bossActive = false;
@@ -615,6 +619,14 @@
             gameState = 'menu';
             document.getElementById('mainMenu').classList.remove('hidden');
             document.getElementById('settingsMenu').classList.remove('show');
+            
+            // 回到菜单后，开启 AI 自动战斗供背景演示
+            settings.aiControl = true;
+            document.getElementById('setAI').classList.add('active');
+            resetGame('endless');
+            gameState = 'menu'; 
+            gameTimer = 0; 
+            player.hp = player.maxHp; // 防止演示时突然死亡
         };
 
         function resetGame(mode) {
@@ -944,7 +956,7 @@
         });
 
         function tryAttack(isTouch = false){
-            if (gameState !== 'playing') return;
+            if (gameState !== 'playing' && gameState !== 'menu') return; // 允许在菜单待机时挥剑
             const a = player.attack;
             if (a.state === 'idle' && a.cooldown <= 0) {
                 a.windupDur = isTouch ? 0.05 : 0.14;
@@ -1082,7 +1094,7 @@
         }
 
         function spawnEnemy(){
-            if (gameState !== 'playing') return;
+            if (gameState !== 'playing' && gameState !== 'menu') return;
             let angle = Math.random() * Math.PI * 2, dist = 600 + Math.random()*300;
             let x = player.x + Math.cos(angle)*dist, y = player.y + Math.sin(angle)*dist;
             x = Math.max(30, Math.min(WORLD_W-30, x)); y = Math.max(30, Math.min(WORLD_H-30, y));
@@ -1105,15 +1117,20 @@
         }
 
         function update(dt){
-            if (gamePaused || gameState !== 'playing') return;
+            if (gamePaused) return;
+            if (gameState !== 'playing' && gameState !== 'menu') return;
 
-            if (currentMode === 'survival') {
-                gameTimer -= dt;
-                if (gameTimer <= 0) { gameTimer = 0; endGame(true); return; }
-            } else if (currentMode === 'hunt') {
-                gameTimer -= dt;
-                if (gameTimer <= 0) { gameTimer = 0; if(killCount >= requiredKills) endGame(true); else endGame(false); return; }
-                if (killCount >= requiredKills) { endGame(true); return; }
+            // 主菜单模式下，不消耗关卡时间，不扣血
+            if (gameState === 'playing') {
+                if (currentMode === 'survival') {
+                    gameTimer -= dt;
+                    if (gameTimer <= 0) { gameTimer = 0; endGame(true); return; }
+                } else if (currentMode === 'hunt') {
+                    gameTimer -= dt;
+                    if (gameTimer <= 0) { gameTimer = 0; if(killCount >= requiredKills) endGame(true); else endGame(false); return; }
+                    if (killCount >= requiredKills) { endGame(true); return; }
+                }
+                gameTimer += (currentMode === 'endless' || currentMode === 'boss') ? dt : 0;
             }
 
             if (currentMode !== 'endless' && currentMode !== 'boss') {
@@ -1125,7 +1142,6 @@
                 const m = Math.floor(gameTimer / 60), s = Math.floor(gameTimer % 60);
                 document.getElementById('timerText').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             }
-            gameTimer += (currentMode === 'endless' || currentMode === 'boss') ? dt : 0;
 
             updateAI(dt);
 
@@ -1134,7 +1150,7 @@
 
             let mx = 0, my = 0;
             
-            if (settings.aiControl) {
+            if (settings.aiControl || gameState === 'menu') {
                 mx = joystickMoveX; my = joystickMoveY;
             } else {
                 if (keys.w) my -= 1; if (keys.s) my += 1; if (keys.a) mx -= 1; if (keys.d) mx += 1;
@@ -1165,7 +1181,7 @@
             player.y = Math.max(player.radius, Math.min(WORLD_H-player.radius, player.y));
 
             const atk = player.attack;
-            if (atk.state === 'idle' && !joystickActive && !attackJoyActive && !settings.aiControl){
+            if (atk.state === 'idle' && !joystickActive && !attackJoyActive && (!settings.aiControl && gameState !== 'menu')){
                 const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
                 if (dx || dy) player.facing = Math.atan2(dy, dx);
             }
@@ -1335,7 +1351,8 @@
                 else { o.x += o.vx * dt * 60; o.y += o.vy * dt * 60; o.vx *= 0.92; o.vy *= 0.92; }
 
                 if (dist < player.radius + o.r){
-                    gainXp(o.value); spawnParticles(o.x, o.y, 6, '#60d0ff', { spd: 3, life: 0.3, size: 2 });
+                    if (gameState === 'playing') gainXp(o.value); 
+                    spawnParticles(o.x, o.y, 6, '#60d0ff', { spd: 3, life: 0.3, size: 2 });
                     if (player.xpBomb > 0){
                         addExplosion(o.x, o.y, 40 + player.xpBomb*15, '#60d0ff');
                         for (const e of enemies){ if (e && Math.hypot(e.x - o.x, e.y - o.y) < 40 + player.xpBomb*15 + e.r) dealDamageToEnemy(e, 5 * player.xpBomb, false, '#60d0ff'); }
@@ -1362,12 +1379,14 @@
                 if (b.life <= 0){ bullets.splice(i,1); continue; }
                 b.x += b.vx * dt * 60; b.y += b.vy * dt * 60;
                 if (Math.hypot(b.x - player.x, b.y - player.y) < b.r + player.radius && !player.invincible){
-                    let dmgTaken = Math.max(1, b.dmg - player.armor);
-                    player.hp -= dmgTaken; player.invincible = true; player.invTimer = 0.8;
-                    spawnParticles(player.x, player.y, 10, '#ff5544', { spd: 4, life: 0.5, size: 3 });
-                    addDamageNumber(player.x, player.y - 30, dmgTaken, '#ff6666');
+                    if (gameState === 'playing') {
+                        let dmgTaken = Math.max(1, b.dmg - player.armor);
+                        player.hp -= dmgTaken; player.invincible = true; player.invTimer = 0.8;
+                        spawnParticles(player.x, player.y, 10, '#ff5544', { spd: 4, life: 0.5, size: 3 });
+                        addDamageNumber(player.x, player.y - 30, dmgTaken, '#ff6666');
+                        if (player.hp <= 0) { endGame(false); return; }
+                    }
                     bullets.splice(i,1);
-                    if (player.hp <= 0) { endGame(false); return; }
                 }
             }
 
@@ -1412,30 +1431,32 @@
 
                 const distToP = Math.hypot(e.x-player.x, e.y-player.y);
                 if (distToP < e.r + player.radius && !player.invincible){
-                    if (Math.random() < player.dodgeChance){
-                        spawnParticles(player.x, player.y, 6, '#aaddff', { spd: 3, life: 0.4, size: 2 });
-                        addDamageNumber(player.x, player.y - 30, '闪避', '#aaddff');
-                        player.invincible = true; player.invTimer = 0.5;
-                    } else {
-                        let dmgTaken = Math.max(1, e.dmg - player.armor);
-                        player.hp -= dmgTaken; player.invincible = true; player.invTimer = 0.8;
-                        const ang = Math.atan2(player.y-e.y, player.x-e.x);
-                        player.x += Math.cos(ang)*18; player.y += Math.sin(ang)*18;
-                        player.x = Math.max(player.radius, Math.min(WORLD_W-player.radius, player.x));
-                        player.y = Math.max(player.radius, Math.min(WORLD_H-player.radius, player.y));
+                    if (gameState === 'playing') {
+                        if (Math.random() < player.dodgeChance){
+                            spawnParticles(player.x, player.y, 6, '#aaddff', { spd: 3, life: 0.4, size: 2 });
+                            addDamageNumber(player.x, player.y - 30, '闪避', '#aaddff');
+                            player.invincible = true; player.invTimer = 0.5;
+                        } else {
+                            let dmgTaken = Math.max(1, e.dmg - player.armor);
+                            player.hp -= dmgTaken; player.invincible = true; player.invTimer = 0.8;
+                            const ang = Math.atan2(player.y-e.y, player.x-e.x);
+                            player.x += Math.cos(ang)*18; player.y += Math.sin(ang)*18;
+                            player.x = Math.max(player.radius, Math.min(WORLD_W-player.radius, player.x));
+                            player.y = Math.max(player.radius, Math.min(WORLD_H-player.radius, player.y));
 
-                        spawnParticles(player.x, player.y, 14, '#ff5544', { spd: 4.5, life: 0.5, size: 3, spark: true });
-                        addShockwave(player.x, player.y, 60, '#ff4444');
-                        addDamageNumber(player.x, player.y - 30, dmgTaken, '#ff6666');
+                            spawnParticles(player.x, player.y, 14, '#ff5544', { spd: 4.5, life: 0.5, size: 3, spark: true });
+                            addShockwave(player.x, player.y, 60, '#ff4444');
+                            addDamageNumber(player.x, player.y - 30, dmgTaken, '#ff6666');
 
-                        if (player.thorns > 0) dealDamageToEnemy(e, player.thorns, false, '#88ff88');
+                            if (player.thorns > 0) dealDamageToEnemy(e, player.thorns, false, '#88ff88');
 
-                        if (player.hp <= 0 && player.phoenix > 0){
-                            player.phoenix--; player.hp = Math.floor(player.maxHp * 0.5);
-                            spawnParticles(player.x, player.y, 50, '#ffaa44', { spd: 8, life: 1.0, size: 5, spark: true });
-                            addShockwave(player.x, player.y, 200, '#ffaa44'); player.invincible = true; player.invTimer = 2.0;
-                        } else if (player.hp <= 0){
-                            endGame(false); return;
+                            if (player.hp <= 0 && player.phoenix > 0){
+                                player.phoenix--; player.hp = Math.floor(player.maxHp * 0.5);
+                                spawnParticles(player.x, player.y, 50, '#ffaa44', { spd: 8, life: 1.0, size: 5, spark: true });
+                                addShockwave(player.x, player.y, 200, '#ffaa44'); player.invincible = true; player.invTimer = 2.0;
+                            } else if (player.hp <= 0){
+                                endGame(false); return;
+                            }
                         }
                     }
                 }
@@ -1469,7 +1490,8 @@
         }
 
         function updateAI(dt) {
-            if (!settings.aiControl || gamePaused || gameState !== 'playing') return;
+            if ((!settings.aiControl && gameState !== 'menu') || gamePaused || (gameState !== 'playing' && gameState !== 'menu')) return;
+            
             let closestOrb = null, minOrbDist = Infinity;
             for (const o of xpOrbs) { const d = Math.hypot(o.x - player.x, o.y - player.y); if (d < minOrbDist) { minOrbDist = d; closestOrb = o; } }
             let closestEnemy = null, minEnemyDist = Infinity;
@@ -1574,7 +1596,7 @@
             if (isSwordHit){
                 if (Math.random() < player.critChance){
                     dmg = Math.floor(dmg * player.critDamage); isCrit = true;
-                    if (player.vampiricCrit > 0 && player.hp < player.maxHp){ player.hp = Math.min(player.maxHp, player.hp + player.vampiricCrit); spawnParticles(player.x, player.y, 4, '#ff4466', { spd: 2.5, life: 0.4, size: 2 }); }
+                    if (player.vampiricCrit > 0 && player.hp < player.maxHp && gameState === 'playing'){ player.hp = Math.min(player.maxHp, player.hp + player.vampiricCrit); spawnParticles(player.x, player.y, 4, '#ff4466', { spd: 2.5, life: 0.4, size: 2 }); }
                     if (player.timeWarp > 0){ player.timeWarpTimer = 1.5 * player.timeWarp; timeRipples.push({ x: player.x, y: player.y, r: 20, life: 0.6, maxLife: 0.6 }); }
                 }
                 if (player.berserker > 0 && player.hp / player.maxHp < 0.4) dmg = Math.floor(dmg * (1 + player.berserker));
@@ -1589,7 +1611,7 @@
                 spawnParticles(e.x, e.y, isCrit ? 18 : 12, '#ffffff', { spd: 5.5, life: 0.35, size: 2.5, spark: true });
                 spawnParticles(e.x, e.y, 8, e.light, { spd: 4, life: 0.55, size: 3 });
                 addBloodStain(e.x, e.y, e.r*0.8, e.color); addShockwave(e.x, e.y, e.r*3, e.glow);
-                if (player.lifesteal > 0 && player.hp < player.maxHp){ player.hp = Math.min(player.maxHp, player.hp + player.lifesteal); spawnParticles(player.x, player.y, 4, '#ff4466', { spd: 2, life: 0.4, size: 2 }); }
+                if (player.lifesteal > 0 && player.hp < player.maxHp && gameState === 'playing'){ player.hp = Math.min(player.maxHp, player.hp + player.lifesteal); spawnParticles(player.x, player.y, 4, '#ff4466', { spd: 2, life: 0.4, size: 2 }); }
                 if (player.explosiveHit > 0){
                     const explodeR = 35 + player.explosiveHit * 10; addExplosion(e.x, e.y, explodeR, '#ff8844');
                     for (const other of enemies){ if (other === e) continue; if (other && Math.hypot(other.x - e.x, other.y - e.y) < explodeR + other.r){ other.hp -= 20; other.hitFlash = 1; addDamageNumber(other.x, other.y - other.r - 8, 20, '#ff8844'); if (other.hp <= 0) killEnemy(other); } }
@@ -1601,7 +1623,8 @@
         function killEnemy(e){
             const idx = enemies.indexOf(e);
             if (idx === -1) return;
-            killCount++; document.getElementById('killCount').innerText = killCount;
+            killCount++; 
+            if (gameState === 'playing') document.getElementById('killCount').innerText = killCount;
             
             const pCount = e.type === 'boss' ? 60 : 24;
             spawnParticles(e.x, e.y, pCount, e.color, { spd: e.type === 'boss' ? 10 : 5.5, life: 0.7, size: 4, gravity: 0.02, spark: true });
@@ -1614,13 +1637,13 @@
             for(let i=0; i<orbCount; i++) spawnXpOrb(e.x + (Math.random()-0.5)*50, e.y + (Math.random()-0.5)*50, e.xpValue / orbCount);
 
             if (player.extraXp > 0){ for (let i=0; i<player.extraXp; i++) spawnXpOrb(e.x, e.y, 1); }
-            if (player.bloodlust > 0 && player.hp < player.maxHp){ player.hp = Math.min(player.maxHp, player.hp + player.bloodlust); spawnParticles(player.x, player.y, 6, '#ff6688', { spd: 2.5, life: 0.4, size: 2 }); }
+            if (player.bloodlust > 0 && player.hp < player.maxHp && gameState === 'playing'){ player.hp = Math.min(player.maxHp, player.hp + player.bloodlust); spawnParticles(player.x, player.y, 6, '#ff6688', { spd: 2.5, life: 0.4, size: 2 }); }
             if (player.echoStrike > 0) player.echoTimer = 3;
 
             if (e.type === 'boss') {
                 bossActive = false;
                 document.getElementById('bossBar').classList.remove('show');
-                endGame(true);
+                if (gameState === 'playing') endGame(true);
             }
             enemies.splice(idx, 1);
         }
@@ -1688,7 +1711,7 @@
 
         function render(){
             let shake = 0;
-            if (settings.shake) shake = player.attack.impactShake * 8;
+            if (settings.shake && gameState === 'playing') shake = player.attack.impactShake * 8;
             const sx = (Math.random()-0.5)*shake, sy = (Math.random()-0.5)*shake;
 
             ctx.save();
@@ -1998,7 +2021,14 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // 初始时不调用 resetGame，停留在主菜单
+        // 启动时，先开启 AI 托管用于背景演示
+        settings.aiControl = true;
+        document.getElementById('setAI').classList.add('active');
+        resetGame('endless');
+        gameState = 'menu'; 
+        gameTimer = 0; 
+        player.hp = player.maxHp; 
+
         updateXpUI();
         requestAnimationFrame(loop);
     })();
