@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>大地图幸存者 · 巨剑</title>
+    <title>大地图幸存者 · 巨剑与魔法</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { overflow: hidden; background: #080a0e; font-family: 'Courier New', monospace; touch-action: none; }
@@ -453,10 +453,12 @@
 
         const WORLD_W = 3000, WORLD_H = 3000;
 
+        // 玩家初始武器状态
         const player = {
             x: WORLD_W/2, y: WORLD_H/2, radius: 18, speed: 3.8,
             hp: 100, maxHp: 100, facing: 0, invincible: false, invTimer: 0,
             moving: false, walkPhase: 0,
+            // 巨剑属性
             swordDamage: 28, swordReach: 1.0, attackSpeed: 1.0, lifesteal: 0,
             critChance: 0, critDamage: 2.0, xpGain: 1.0, magnetRange: 80,
             armor: 0, regen: 0, regenTimer: 0, dodgeChance: 0, thorns: 0,
@@ -465,6 +467,12 @@
             berserker: 0, echoStrike: 0, echoTimer: 0, soulHarvest: 0,
             soulStacks: 0, timeWarp: 0, timeWarpTimer: 0, vampiricCrit: 0,
             level: 1, xp: 0, xpToNext: 10,
+            // 副武器属性
+            wFireOrb: 0, wFireOrbTimer: 0, wFireOrbAngle: 0,
+            wDagger: 0, wDaggerTimer: 0,
+            wLightning: 0, wLightningTimer: 0,
+            wShockwave: 0, wShockwaveTimer: 0,
+
             attack: {
                 state: 'idle', t: 0, windupDur: 0.14, slashDur: 0.16, recoverDur: 0.20,
                 cooldown: 0, cooldownMax: 0.08, swordAngle: 0, swingFrom: 0, swingTo: 0,
@@ -497,6 +505,7 @@
         };
         let enemies = [];
         let bullets = []; 
+        let projectiles = []; // 玩家的飞刀等投射物
         let killCount = 0;
         let spawnTimer = 0;
 
@@ -547,12 +556,18 @@
             player.timeWarp = 0; player.timeWarpTimer = 0; player.vampiricCrit = 0;
             player.phoenix = 0; player.extraXp = 0; player.bladeStorm = 0; player.infiniteEdge = 0; player.gravityWell = 0;
             
+            // 重置武器
+            player.wFireOrb = 0; player.wFireOrbTimer = 0;
+            player.wDagger = 0; player.wDaggerTimer = 0;
+            player.wLightning = 0; player.wLightningTimer = 0;
+            player.wShockwave = 0; player.wShockwaveTimer = 0;
+            
             SKILL_POOL.forEach(s => s.currentLevel = 0);
             updateSkillBar(); updateStatusBar();
             
-            enemies = []; bullets = []; particles.length = 0; bloodStains.length = 0;
-            slashArcs.length = 0; shockwaves.length = 0; damageNumbers.length = 0;
-            xpOrbs.length = 0; swordWaves.length = 0; explosions.length = 0;
+            enemies = []; bullets = []; projectiles = [];
+            particles.length = 0; bloodStains.length = 0; slashArcs.length = 0; shockwaves.length = 0;
+            damageNumbers.length = 0; xpOrbs.length = 0; swordWaves.length = 0; explosions.length = 0;
             frostPatches.length = 0; firePatches.length = 0; timeRipples.length = 0;
 
             spawnTimer = 0;
@@ -616,7 +631,6 @@
             document.getElementById('bossBar').classList.add('show');
         }
 
-        // 键盘输入（PC端）
         window.addEventListener('keydown', e => {
             if (gamePaused || gameState !== 'playing' || settings.aiControl) return;
             const k = e.key.toLowerCase();
@@ -648,7 +662,6 @@
         });
         canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-        // ================= 移动端双摇杆核心逻辑 =================
         const joyBase = document.getElementById('joystickBase');
         const joyThumb = document.getElementById('joystickThumb');
         const joyAttackBase = document.getElementById('joyAttackBase');
@@ -666,7 +679,6 @@
                 const touchY = touch.clientY - rect.top;
 
                 if (touchX < window.innerWidth / 2) {
-                    // 左摇杆（移动）
                     if (!joystickActive) {
                         joystickActive = true;
                         joystickStartX = touchX;
@@ -682,7 +694,6 @@
                         joyThumb.style.transform = 'translate(-50%, -50%)';
                     }
                 } else {
-                    // 右摇杆（攻击）
                     if (!attackJoyActive) {
                         attackJoyActive = true;
                         attackJoyStartX = touchX;
@@ -697,7 +708,6 @@
                         joyAttackBase.style.height = (JOY_RADIUS*2) + 'px';
                         joyAttackThumb.style.transform = 'translate(-50%, -50%)';
                         
-                        // 点击瞬间直接朝这个方向攻击一次
                         attackJoyMoveX = 1; attackJoyMoveY = 0;
                         updateAttackDirection();
                     }
@@ -716,7 +726,6 @@
                 const touchY = touch.clientY - rect.top;
 
                 if (touchX < window.innerWidth / 2) {
-                    // 更新移动摇杆
                     if (joystickActive && Math.hypot(touchX - joystickStartX, touchY - joystickStartY) < JOY_RADIUS * 3) {
                         joystickCurrentX = touchX;
                         joystickCurrentY = touchY;
@@ -735,7 +744,6 @@
                         joystickMoveY = dy / JOY_RADIUS;
                     }
                 } else {
-                    // 更新攻击摇杆
                     if (attackJoyActive && Math.hypot(touchX - attackJoyStartX, touchY - attackJoyStartY) < JOY_RADIUS * 3) {
                         attackJoyCurrentX = touchX;
                         attackJoyCurrentY = touchY;
@@ -787,16 +795,13 @@
             attackJoyActive = false; joyAttackBase.style.display = 'none'; attackJoyMoveX = 0; attackJoyMoveY = 0;
         });
 
-        // 右摇杆控制攻击方向
         function updateAttackDirection() {
             if (Math.abs(attackJoyMoveX) > 0.1 || Math.abs(attackJoyMoveY) > 0.1) {
                 const angle = Math.atan2(attackJoyMoveY, attackJoyMoveX);
                 player.facing = angle;
-                // 只要推了摇杆，就自动尝试攻击
                 tryAttack(true);
             }
         }
-        // ==============================================
 
         const settingsMenu = document.getElementById('settingsMenu');
         document.getElementById('settingsBtn').addEventListener('click', (e) => {
@@ -855,12 +860,10 @@
         function tryAttack(isTouch = false){
             const a = player.attack;
             if (a.state === 'idle' && a.cooldown <= 0) {
-                // 触摸端取消前摇
                 a.windupDur = isTouch ? 0.05 : 0.14;
                 a.state = 'windup';
                 a.t = 0; a.hitSet.clear();
                 
-                // 如果是 PC 端鼠标攻击，计算朝向
                 if (!isTouch && !settings.aiControl) {
                     const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
                     player.facing = Math.atan2(dy, dx);
@@ -874,6 +877,7 @@
         }
 
         const SKILL_POOL = [
+            // 原有技能...
             { id:'damage', name:'利刃', icon:'🗡️', rarity:'common', desc:'剑伤 +8', apply:()=>{player.swordDamage+=8;}, maxLevel:99, currentLevel:0 },
             { id:'reach', name:'长刃', icon:'📏', rarity:'common', desc:'剑长 +12%', apply:()=>{player.swordReach+=0.12;}, maxLevel:8, currentLevel:0 },
             { id:'maxhp', name:'铁躯', icon:'❤️', rarity:'common', desc:'生命 +25', apply:()=>{player.maxHp+=25; player.hp+=25;}, maxLevel:99, currentLevel:0 },
@@ -907,7 +911,13 @@
             { id:'vampiricCrit', name:'血之暴击', icon:'🩸', rarity:'mythic', desc:'暴击回血 5', apply:()=>{player.vampiricCrit+=5;}, maxLevel:4, currentLevel:0 },
             { id:'infiniteEdge', name:'无限之刃', icon:'♾️', rarity:'mythic', desc:'全方位剑气', apply:()=>{player.infiniteEdge=(player.infiniteEdge||0)+1;}, maxLevel:2, currentLevel:0 },
             { id:'gravityWell', name:'引力井', icon:'🌌', rarity:'mythic', desc:'吸引并伤害敌人', apply:()=>{player.gravityWell=(player.gravityWell||0)+1;}, maxLevel:3, currentLevel:0 },
-            { id:'celestial', name:'天界祝福', icon:'🌟', rarity:'mythic', desc:'全属性大幅提升', apply:()=>{player.attackSpeed+=0.2; player.critChance+=0.1; player.speed*=1.1; player.regen+=1.0;}, maxLevel:2, currentLevel:0 }
+            { id:'celestial', name:'天界祝福', icon:'🌟', rarity:'mythic', desc:'全属性大幅提升', apply:()=>{player.attackSpeed+=0.2; player.critChance+=0.1; player.speed*=1.1; player.regen+=1.0;}, maxLevel:2, currentLevel:0 },
+            
+            // ================= 新增副武器技能 =================
+            { id:'wFireOrb', name:'烈焰光环', icon:'🔥', rarity:'epic', desc:'召唤环绕自身的火球', apply:()=>{player.wFireOrb+=1;}, maxLevel:5, currentLevel:0 },
+            { id:'wDagger', name:'飞羽暗器', icon:'🗡️', rarity:'rare', desc:'自动索敌发射穿透飞刀', apply:()=>{player.wDagger+=1;}, maxLevel:5, currentLevel:0 },
+            { id:'wLightning', name:'雷霆之怒', icon:'⚡', rarity:'legendary', desc:'随机降下闪电劈击敌人', apply:()=>{player.wLightning+=1;}, maxLevel:5, currentLevel:0 },
+            { id:'wShockwave', name:'震荡波', icon:'🛡️', rarity:'epic', desc:'周期性发出击退冲击波', apply:()=>{player.wShockwave+=1;}, maxLevel:5, currentLevel:0 }
         ];
 
         let currentChoices = [];
@@ -1110,6 +1120,84 @@
                 }
             }
 
+            // ================= 副武器逻辑 =================
+            // 1. 烈焰光环
+            if (player.wFireOrb > 0) {
+                player.wFireOrbTimer += dt;
+                player.wFireOrbAngle += dt * 3;
+                if (player.wFireOrbTimer > 0.3) {
+                    player.wFireOrbTimer = 0;
+                    const orbCount = player.wFireOrb;
+                    for (let i = 0; i < orbCount; i++) {
+                        const ang = player.wFireOrbAngle + (i / orbCount) * Math.PI * 2;
+                        const orbX = player.x + Math.cos(ang) * 90;
+                        const orbY = player.y + Math.sin(ang) * 90;
+                        for (const e of enemies) {
+                            if (e && Math.hypot(e.x - orbX, e.y - orbY) < e.r + 20) {
+                                dealDamageToEnemy(e, Math.floor(player.swordDamage * 0.5), false, '#ff8844');
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. 飞羽暗器
+            if (player.wDagger > 0) {
+                player.wDaggerTimer += dt;
+                if (player.wDaggerTimer > 1.0) {
+                    player.wDaggerTimer = 0;
+                    let closestEnemy = null, minDist = 500;
+                    for (const e of enemies) { const d = Math.hypot(e.x - player.x, e.y - player.y); if (d < minDist) { minDist = d; closestEnemy = e; } }
+                    if (closestEnemy) {
+                        const ang = Math.atan2(closestEnemy.y - player.y, closestEnemy.x - player.x);
+                        for (let i = 0; i < player.wDagger; i++) {
+                            const spread = (i - (player.wDagger - 1) / 2) * 0.2;
+                            projectiles.push({
+                                x: player.x, y: player.y,
+                                vx: Math.cos(ang + spread) * 10, vy: Math.sin(ang + spread) * 10,
+                                r: 6, dmg: player.swordDamage * 0.8, life: 1.5, maxLife: 1.5, type: 'dagger'
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 3. 雷霆之怒
+            if (player.wLightning > 0) {
+                player.wLightningTimer += dt;
+                if (player.wLightningTimer > 2.0) {
+                    player.wLightningTimer = 0;
+                    for (let i = 0; i < player.wLightning; i++) {
+                        if (enemies.length === 0) break;
+                        const e = enemies[Math.floor(Math.random() * enemies.length)];
+                        if (e) {
+                            // 闪电特效和伤害
+                            explosions.push({ x: e.x, y: e.y, r: 5, maxR: 50, life: 0.3, maxLife: 0.3, color: '#aaddff' });
+                            dealDamageToEnemy(e, Math.floor(player.swordDamage * 1.5), false, '#aaddff');
+                        }
+                    }
+                }
+            }
+
+            // 4. 震荡波
+            if (player.wShockwave > 0) {
+                player.wShockwaveTimer += dt;
+                if (player.wShockwaveTimer > 2.5) {
+                    player.wShockwaveTimer = 0;
+                    for (let i = 0; i < player.wShockwave; i++) {
+                        addShockwave(player.x, player.y, 200 + i * 30, '#88ccff');
+                    }
+                    for (const e of enemies) {
+                        if (e && Math.hypot(e.x - player.x, e.y - player.y) < 250) {
+                            dealDamageToEnemy(e, Math.floor(player.swordDamage * 0.6), false, '#88ccff');
+                            const ang = Math.atan2(e.y - player.y, e.x - player.x);
+                            e.x += Math.cos(ang) * 50; e.y += Math.sin(ang) * 50;
+                        }
+                    }
+                }
+            }
+            // ==============================================
+
             if (player.regen > 0 && player.hp < player.maxHp){
                 player.regenTimer += dt;
                 if (player.regenTimer >= 1){ player.hp = Math.min(player.maxHp, player.hp + player.regen); player.regenTimer = 0; }
@@ -1123,6 +1211,20 @@
             for (let i=explosions.length-1; i>=0; i--){ const ex=explosions[i]; ex.life-=dt; ex.r+=(ex.maxR-ex.r)*dt*15; if(ex.life<=0)explosions.splice(i,1); }
             for (let i=damageNumbers.length-1; i>=0; i--){ const d=damageNumbers[i]; d.life-=dt; d.y+=d.vy*dt*60; d.vy*=0.94; if(d.life<=0)damageNumbers.splice(i,1); }
             for (let i=timeRipples.length-1; i>=0; i--){ const r=timeRipples[i]; r.life-=dt; r.r+=200*dt; if(r.life<=0)timeRipples.splice(i,1); }
+
+            // 飞刀投射物更新
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i]; p.life -= dt;
+                if (p.life <= 0) { projectiles.splice(i, 1); continue; }
+                p.x += p.vx * dt * 60; p.y += p.vy * dt * 60;
+                for (const e of enemies) {
+                    if (e && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r) {
+                        dealDamageToEnemy(e, p.dmg, false, '#aaddff');
+                        p.life = 0; // 穿透后消失
+                        break;
+                    }
+                }
+            }
 
             for (let i=swordWaves.length-1; i>=0; i--){
                 const w = swordWaves[i]; w.life -= dt;
@@ -1381,6 +1483,11 @@
             if (player.soulStacks > 0) statuses.push(`💀 +${player.soulStacks}`);
             if (player.echoStrike > 0) statuses.push(`🔮 x${player.echoStrike}`);
             if (player.infiniteEdge) statuses.push(`♾️`);
+            // 副武器状态
+            if (player.wFireOrb > 0) statuses.push(`🔥 x${player.wFireOrb}`);
+            if (player.wDagger > 0) statuses.push(`🗡️ x${player.wDagger}`);
+            if (player.wLightning > 0) statuses.push(`⚡ x${player.wLightning}`);
+            if (player.wShockwave > 0) statuses.push(`🛡️ x${player.wShockwave}`);
             bar.innerHTML = statuses.map(s => `<div class="status-icon">${s}</div>`).join('');
         }
 
@@ -1433,7 +1540,6 @@
             if (player.bloodlust > 0 && player.hp < player.maxHp){ player.hp = Math.min(player.maxHp, player.hp + player.bloodlust); spawnParticles(player.x, player.y, 6, '#ff6688', { spd: 2.5, life: 0.4, size: 2 }); }
             if (player.echoStrike > 0) player.echoTimer = 3;
 
-            // ===== 修复：只有打死真正的 BOSS 才能胜利 =====
             if (e.type === 'boss') {
                 bossActive = false;
                 document.getElementById('bossBar').classList.remove('show');
@@ -1586,6 +1692,15 @@
                 ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
             }
 
+            // 飞刀渲染
+            for (const p of projectiles) {
+                const px = p.x - cam.x, py = p.y - cam.y;
+                ctx.save(); ctx.translate(px, py); ctx.rotate(Math.atan2(p.vy, p.vx));
+                ctx.beginPath(); ctx.moveTo(-10, -3); ctx.lineTo(10, 0); ctx.lineTo(-10, 3); ctx.closePath();
+                ctx.fillStyle = '#aaddff'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+                ctx.restore();
+            }
+
             for (const e of enemies){
                 const ex = e.x - cam.x, ey = e.y - cam.y;
                 if (ex < -150 || ex > canvas.width+150 || ey < -150 || ey > canvas.height+150) continue;
@@ -1616,6 +1731,19 @@
             }
 
             drawPlayerAndSword();
+
+            // 烈焰光环渲染
+            if (player.wFireOrb > 0) {
+                for (let i = 0; i < player.wFireOrb; i++) {
+                    const ang = player.wFireOrbAngle + (i / player.wFireOrb) * Math.PI * 2;
+                    const orbX = player.x - cam.x + Math.cos(ang) * 90;
+                    const orbY = player.y - cam.y + Math.sin(ang) * 90;
+                    ctx.beginPath(); ctx.arc(orbX, orbY, 12, 0, Math.PI*2);
+                    const g = ctx.createRadialGradient(orbX, orbY, 2, orbX, orbY, 12);
+                    g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, '#ffaa44'); g.addColorStop(1, 'rgba(255,80,0,0)');
+                    ctx.fillStyle = g; ctx.fill();
+                }
+            }
 
             for (const a of slashArcs){
                 const ax = a.x - cam.x, ay = a.y - cam.y;
