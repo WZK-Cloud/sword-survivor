@@ -310,7 +310,6 @@
     </style>
 </head>
 <body>
-    <!-- 强制横屏提示 -->
     <div class="orientation-warning">
         <div class="icon">📱</div>
         <div>请将手机横置以获得最佳体验</div>
@@ -334,7 +333,6 @@
         </div>
     </div>
 
-    <!-- 游戏UI区 -->
     <div class="hud">
         <span id="modeName">无尽模式</span>
         <span class="timer" id="timerText" style="display:none;">00:00</span>
@@ -351,7 +349,6 @@
         <div class="boss-text" id="bossText">深渊领主</div>
     </div>
 
-    <!-- 关卡选择界面 -->
     <div class="overlay" id="levelOverlay">
         <div class="popup-box">
             <div class="popup-title">🎯 选择关卡</div>
@@ -388,7 +385,6 @@
         </div>
     </div>
 
-    <!-- 结算界面 -->
     <div class="overlay" id="resultOverlay">
         <div class="popup-box">
             <div class="popup-title" id="resultTitle">挑战成功</div>
@@ -403,7 +399,6 @@
         </div>
     </div>
 
-    <!-- 升级界面 -->
     <div class="overlay" id="upgradeOverlay">
         <div class="popup-box" style="background: transparent; border: none; box-shadow: none; max-width: 1000px;">
             <div class="popup-title">⚡ 升级 ⚡</div>
@@ -412,7 +407,6 @@
         </div>
     </div>
 
-    <!-- 设置面板 -->
     <div class="settings-menu" id="settingsMenu">
         <div class="settings-title">⚙️ 设置</div>
         <div class="setting-group">画面与特效</div>
@@ -439,14 +433,12 @@
         </div>
     </div>
 
-    <!-- 游戏内UI -->
     <div class="hp-bar"><div id="hpFill" class="hp-fill" style="width:100%"></div><div class="hp-text" id="hpText">100 / 100</div></div>
     <div class="status-bar" id="statusBar"></div>
     <div class="skill-bar" id="skillBar"></div>
     <div class="level-badge">Lv.<span id="levelNum">1</span></div>
     <div class="xp-bar"><div id="xpFill" class="xp-fill"></div><div class="xp-text" id="xpText">0 / 10</div></div>
 
-    <!-- 摇杆视觉 -->
     <div class="joystick-visual" id="joystickBase"><div class="joystick-thumb" id="joystickThumb"></div></div>
     <div class="joystick-visual joystick-attack" id="joyAttackBase"><div class="joystick-thumb" id="joyAttackThumb"></div></div>
 
@@ -521,7 +513,7 @@
         };
 
         let currentMode = 'endless'; 
-        let gameState = 'menu'; // 默认进入菜单状态
+        let gameState = 'menu';
         let gameTimer = 0;
         let requiredKills = 0;
         let bossActive = false;
@@ -620,13 +612,12 @@
             document.getElementById('mainMenu').classList.remove('hidden');
             document.getElementById('settingsMenu').classList.remove('show');
             
-            // 回到菜单后，开启 AI 自动战斗供背景演示
             settings.aiControl = true;
             document.getElementById('setAI').classList.add('active');
             resetGame('endless');
             gameState = 'menu'; 
             gameTimer = 0; 
-            player.hp = player.maxHp; // 防止演示时突然死亡
+            player.hp = player.maxHp; 
         };
 
         function resetGame(mode) {
@@ -956,7 +947,7 @@
         });
 
         function tryAttack(isTouch = false){
-            if (gameState !== 'playing' && gameState !== 'menu') return; // 允许在菜单待机时挥剑
+            if (gameState !== 'playing' && gameState !== 'menu') return; 
             const a = player.attack;
             if (a.state === 'idle' && a.cooldown <= 0) {
                 a.windupDur = isTouch ? 0.05 : 0.14;
@@ -1120,7 +1111,6 @@
             if (gamePaused) return;
             if (gameState !== 'playing' && gameState !== 'menu') return;
 
-            // 主菜单模式下，不消耗关卡时间，不扣血
             if (gameState === 'playing') {
                 if (currentMode === 'survival') {
                     gameTimer -= dt;
