@@ -513,7 +513,7 @@
         };
 
         let currentMode = 'endless'; 
-        let gameState = 'menu';
+        let gameState = 'menu'; 
         let gameTimer = 0;
         let requiredKills = 0;
         let bossActive = false;
@@ -954,9 +954,17 @@
                 a.state = 'windup';
                 a.t = 0; a.hitSet.clear();
                 
+                // 如果是AI或玩家鼠标，计算朝向
                 if (!isTouch && !settings.aiControl) {
                     const dx = mouseWorld.x - player.x, dy = mouseWorld.y - player.y;
                     player.facing = Math.atan2(dy, dx);
+                } else if (settings.aiControl || gameState === 'menu') {
+                    // 在背景演示或AI托管时，强制朝向最近的敌人
+                    let closestEnemy = null, minDist = 9999;
+                    for (const e of enemies) { const d = Math.hypot(e.x - player.x, e.y - player.y); if (d < minDist) { minDist = d; closestEnemy = e; } }
+                    if (closestEnemy) {
+                        player.facing = Math.atan2(closestEnemy.y - player.y, closestEnemy.x - player.x);
+                    }
                 }
 
                 a.swingFrom = player.facing - 1.5;
