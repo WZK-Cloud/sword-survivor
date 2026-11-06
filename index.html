@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>大地图幸存者 · 巨剑与魔法</title>
+    <title>大地图幸存者 · 巨剑</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { overflow: hidden; background: #080a0e; font-family: 'Courier New', monospace; touch-action: none; }
@@ -149,6 +149,7 @@
         .action-btn.primary { background: #1a4a6a; border-color: #3a8aaa; color: #aaddff; }
         .action-btn.primary:hover { background: #2a6a9a; box-shadow: 0 0 15px rgba(60,180,255,0.3); }
 
+        /* 升级卡片 */
         .cards { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; perspective: 1000px; padding: 10px; }
         .card {
             width: 160px; min-height: 230px;
@@ -241,6 +242,55 @@
             background: rgba(255, 80, 80, 0.5); border-color: rgba(255, 80, 80, 0.9);
         }
 
+        /* ================= 主菜单专属样式 ================= */
+        .main-menu {
+            position: fixed; inset: 0; z-index: 300;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #1a2028 0%, #080a0e 100%);
+            transition: opacity 0.5s ease;
+        }
+        .main-menu.hidden { opacity: 0; pointer-events: none; }
+        
+        .game-title {
+            color: #ffd966; font-size: 3rem; font-weight: bold; letter-spacing: 8px;
+            text-shadow: 0 0 20px rgba(255,217,102,0.6), 0 4px 10px #000;
+            margin-bottom: 10px; animation: titlePulse 3s infinite;
+        }
+        @media(min-width: 768px) { .game-title { font-size: 4.5rem; } }
+        
+        .game-subtitle {
+            color: #8a9aaa; font-size: 1rem; letter-spacing: 4px; margin-bottom: 50px;
+        }
+
+        .menu-buttons { display: flex; flex-direction: column; gap: 20px; width: 260px; }
+        
+        .menu-btn {
+            background: linear-gradient(90deg, rgba(30,40,54,0.8), rgba(15,20,30,0.8));
+            border: 2px solid #3a4a5a; color: #e8f0ff; font-size: 1.2rem; font-weight: bold;
+            padding: 15px 0; border-radius: 12px; cursor: pointer;
+            transition: all 0.2s; letter-spacing: 2px; position: relative; overflow: hidden;
+        }
+        .menu-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        .menu-btn:hover { transform: scale(1.05); border-color: #60d0ff; box-shadow: 0 0 20px rgba(96,208,255,0.3); }
+        .menu-btn:hover::before { left: 100%; }
+        .menu-btn.primary { border-color: #c8a030; color: #ffd966; text-shadow: 0 0 10px rgba(255,217,102,0.5); }
+        .menu-btn.primary:hover { border-color: #ffe060; box-shadow: 0 0 20px rgba(255,220,80,0.4); }
+        
+        .instructions {
+            position: absolute; bottom: 30px; color: #5a6a7a; font-size: 0.8rem;
+            text-align: center; line-height: 1.6;
+        }
+        .instructions span { color: #ffd966; }
+
+        @keyframes titlePulse {
+            0%, 100% { text-shadow: 0 0 20px rgba(255,217,102,0.6), 0 4px 10px #000; }
+            50% { text-shadow: 0 0 40px rgba(255,217,102,1), 0 4px 10px #000; }
+        }
+
         @media (max-height: 500px) {
             .hud { top: 8px; left: 8px; padding: 4px 10px; font-size: 0.75rem; }
             .kill-counter { font-size: 0.8rem; padding: 4px 10px; }
@@ -249,15 +299,38 @@
             .skill-bar { top: 40px; }
             .settings-menu { top: 40px; }
             .level-badge { bottom: 30px; }
+            .game-title { font-size: 2.5rem; }
+            .game-subtitle { margin-bottom: 20px; }
+            .menu-buttons { gap: 10px; }
         }
     </style>
 </head>
 <body>
+    <!-- 强制横屏提示 -->
     <div class="orientation-warning">
         <div class="icon">📱</div>
         <div>请将手机横置以获得最佳体验</div>
     </div>
 
+    <!-- ================= 主菜单界面 ================= -->
+    <div class="main-menu" id="mainMenu">
+        <div class="game-title">巨剑幸存者</div>
+        <div class="game-subtitle">G I A N T &nbsp; S W O R D &nbsp; S U R V I V O R</div>
+        
+        <div class="menu-buttons">
+            <button class="menu-btn primary" onclick="startGameFromMenu('endless')">进入游戏</button>
+            <button class="menu-btn" onclick="openLevelSelectFromMenu()">选择关卡</button>
+            <button class="menu-btn" onclick="toggleSettingsFromMenu()">游戏设置</button>
+        </div>
+
+        <div class="instructions">
+            【PC端】WASD 移动，鼠标点击/空格 攻击<br>
+            【移动端】左半屏拖动摇杆移动，右半屏拖动摇杆攻击<br>
+            <span>在无尽的怪潮中活下来，升级你的技能与武器！</span>
+        </div>
+    </div>
+
+    <!-- 游戏UI区 -->
     <div class="hud">
         <span id="modeName">无尽模式</span>
         <span class="timer" id="timerText" style="display:none;">00:00</span>
@@ -274,6 +347,7 @@
         <div class="boss-text" id="bossText">深渊领主</div>
     </div>
 
+    <!-- 关卡选择界面 -->
     <div class="overlay" id="levelOverlay">
         <div class="popup-box">
             <div class="popup-title">🎯 选择关卡</div>
@@ -310,6 +384,7 @@
         </div>
     </div>
 
+    <!-- 结算界面 -->
     <div class="overlay" id="resultOverlay">
         <div class="popup-box">
             <div class="popup-title" id="resultTitle">挑战成功</div>
@@ -319,11 +394,12 @@
             </div>
             <div class="btn-group">
                 <button class="action-btn" onclick="retryLevel()">🔄 再来一次</button>
-                <button class="action-btn primary" onclick="backToMenu()">🏠 返回大厅</button>
+                <button class="action-btn primary" onclick="backToMenu()">🏠 返回主菜单</button>
             </div>
         </div>
     </div>
 
+    <!-- 升级界面 -->
     <div class="overlay" id="upgradeOverlay">
         <div class="popup-box" style="background: transparent; border: none; box-shadow: none; max-width: 1000px;">
             <div class="popup-title">⚡ 升级 ⚡</div>
@@ -332,6 +408,7 @@
         </div>
     </div>
 
+    <!-- 设置面板 -->
     <div class="settings-menu" id="settingsMenu">
         <div class="settings-title">⚙️ 设置</div>
         <div class="setting-group">画面与特效</div>
@@ -358,20 +435,16 @@
         </div>
     </div>
 
+    <!-- 游戏内UI -->
     <div class="hp-bar"><div id="hpFill" class="hp-fill" style="width:100%"></div><div class="hp-text" id="hpText">100 / 100</div></div>
     <div class="status-bar" id="statusBar"></div>
     <div class="skill-bar" id="skillBar"></div>
     <div class="level-badge">Lv.<span id="levelNum">1</span></div>
     <div class="xp-bar"><div id="xpFill" class="xp-fill"></div><div class="xp-text" id="xpText">0 / 10</div></div>
 
-    <!-- 左摇杆（移动） -->
-    <div class="joystick-visual" id="joystickBase">
-        <div class="joystick-thumb" id="joystickThumb"></div>
-    </div>
-    <!-- 右摇杆（攻击） -->
-    <div class="joystick-visual joystick-attack" id="joyAttackBase">
-        <div class="joystick-thumb" id="joyAttackThumb"></div>
-    </div>
+    <!-- 摇杆视觉 -->
+    <div class="joystick-visual" id="joystickBase"><div class="joystick-thumb" id="joystickThumb"></div></div>
+    <div class="joystick-visual joystick-attack" id="joyAttackBase"><div class="joystick-thumb" id="joyAttackThumb"></div></div>
 
     <canvas id="gameCanvas"></canvas>
 
@@ -444,7 +517,7 @@
         };
 
         let currentMode = 'endless'; 
-        let gameState = 'playing';   
+        let gameState = 'menu'; // 初始化状态为菜单
         let gameTimer = 0;
         let requiredKills = 0;
         let bossActive = false;
@@ -453,12 +526,10 @@
 
         const WORLD_W = 3000, WORLD_H = 3000;
 
-        // 玩家初始武器状态
         const player = {
             x: WORLD_W/2, y: WORLD_H/2, radius: 18, speed: 3.8,
             hp: 100, maxHp: 100, facing: 0, invincible: false, invTimer: 0,
             moving: false, walkPhase: 0,
-            // 巨剑属性
             swordDamage: 28, swordReach: 1.0, attackSpeed: 1.0, lifesteal: 0,
             critChance: 0, critDamage: 2.0, xpGain: 1.0, magnetRange: 80,
             armor: 0, regen: 0, regenTimer: 0, dodgeChance: 0, thorns: 0,
@@ -467,12 +538,10 @@
             berserker: 0, echoStrike: 0, echoTimer: 0, soulHarvest: 0,
             soulStacks: 0, timeWarp: 0, timeWarpTimer: 0, vampiricCrit: 0,
             level: 1, xp: 0, xpToNext: 10,
-            // 副武器属性
             wFireOrb: 0, wFireOrbTimer: 0, wFireOrbAngle: 0,
             wDagger: 0, wDaggerTimer: 0,
             wLightning: 0, wLightningTimer: 0,
             wShockwave: 0, wShockwaveTimer: 0,
-
             attack: {
                 state: 'idle', t: 0, windupDur: 0.14, slashDur: 0.16, recoverDur: 0.20,
                 cooldown: 0, cooldownMax: 0.08, swordAngle: 0, swingFrom: 0, swingTo: 0,
@@ -483,7 +552,6 @@
         const cam = { x:0, y:0 };
         const keys = { w:false,a:false,s:false,d:false };
         
-        // 双摇杆状态
         let joystickActive = false;
         let joystickStartX = 0, joystickStartY = 0;
         let joystickCurrentX = 0, joystickCurrentY = 0;
@@ -505,7 +573,7 @@
         };
         let enemies = [];
         let bullets = []; 
-        let projectiles = []; // 玩家的飞刀等投射物
+        let projectiles = [];
         let killCount = 0;
         let spawnTimer = 0;
 
@@ -519,8 +587,23 @@
             });
         }
 
+        // ================= 菜单控制逻辑 =================
+        window.startGameFromMenu = function() {
+            document.getElementById('mainMenu').classList.add('hidden');
+            resetGame('endless');
+        };
+
+        window.openLevelSelectFromMenu = function() {
+            document.getElementById('levelOverlay').classList.add('show');
+        };
+
+        window.toggleSettingsFromMenu = function() {
+            document.getElementById('settingsMenu').classList.toggle('show');
+        };
+
         window.startLevel = function(mode) {
             document.getElementById('levelOverlay').classList.remove('show');
+            document.getElementById('mainMenu').classList.add('hidden');
             resetGame(mode);
         };
         window.retryLevel = function() {
@@ -529,7 +612,9 @@
         };
         window.backToMenu = function() {
             document.getElementById('resultOverlay').classList.remove('show');
-            resetGame('endless');
+            gameState = 'menu';
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.getElementById('settingsMenu').classList.remove('show');
         };
 
         function resetGame(mode) {
@@ -556,7 +641,6 @@
             player.timeWarp = 0; player.timeWarpTimer = 0; player.vampiricCrit = 0;
             player.phoenix = 0; player.extraXp = 0; player.bladeStorm = 0; player.infiniteEdge = 0; player.gravityWell = 0;
             
-            // 重置武器
             player.wFireOrb = 0; player.wFireOrbTimer = 0;
             player.wDagger = 0; player.wDaggerTimer = 0;
             player.wLightning = 0; player.wLightningTimer = 0;
@@ -631,6 +715,7 @@
             document.getElementById('bossBar').classList.add('show');
         }
 
+        // 输入控制
         window.addEventListener('keydown', e => {
             if (gamePaused || gameState !== 'playing' || settings.aiControl) return;
             const k = e.key.toLowerCase();
@@ -816,10 +901,11 @@
         });
         window.closeLevelSelect = function() {
             document.getElementById('levelOverlay').classList.remove('show');
+            if (gameState === 'menu') return;
             gamePaused = false;
         };
         window.addEventListener('click', (e) => {
-            if (!settingsMenu.contains(e.target) && e.target.id !== 'settingsBtn') {
+            if (!settingsMenu.contains(e.target) && e.target.id !== 'settingsBtn' && !document.getElementById('mainMenu').contains(e.target)) {
                 settingsMenu.classList.remove('show');
             }
         });
@@ -858,6 +944,7 @@
         });
 
         function tryAttack(isTouch = false){
+            if (gameState !== 'playing') return;
             const a = player.attack;
             if (a.state === 'idle' && a.cooldown <= 0) {
                 a.windupDur = isTouch ? 0.05 : 0.14;
@@ -877,7 +964,6 @@
         }
 
         const SKILL_POOL = [
-            // 原有技能...
             { id:'damage', name:'利刃', icon:'🗡️', rarity:'common', desc:'剑伤 +8', apply:()=>{player.swordDamage+=8;}, maxLevel:99, currentLevel:0 },
             { id:'reach', name:'长刃', icon:'📏', rarity:'common', desc:'剑长 +12%', apply:()=>{player.swordReach+=0.12;}, maxLevel:8, currentLevel:0 },
             { id:'maxhp', name:'铁躯', icon:'❤️', rarity:'common', desc:'生命 +25', apply:()=>{player.maxHp+=25; player.hp+=25;}, maxLevel:99, currentLevel:0 },
@@ -912,8 +998,6 @@
             { id:'infiniteEdge', name:'无限之刃', icon:'♾️', rarity:'mythic', desc:'全方位剑气', apply:()=>{player.infiniteEdge=(player.infiniteEdge||0)+1;}, maxLevel:2, currentLevel:0 },
             { id:'gravityWell', name:'引力井', icon:'🌌', rarity:'mythic', desc:'吸引并伤害敌人', apply:()=>{player.gravityWell=(player.gravityWell||0)+1;}, maxLevel:3, currentLevel:0 },
             { id:'celestial', name:'天界祝福', icon:'🌟', rarity:'mythic', desc:'全属性大幅提升', apply:()=>{player.attackSpeed+=0.2; player.critChance+=0.1; player.speed*=1.1; player.regen+=1.0;}, maxLevel:2, currentLevel:0 },
-            
-            // ================= 新增副武器技能 =================
             { id:'wFireOrb', name:'烈焰光环', icon:'🔥', rarity:'epic', desc:'召唤环绕自身的火球', apply:()=>{player.wFireOrb+=1;}, maxLevel:5, currentLevel:0 },
             { id:'wDagger', name:'飞羽暗器', icon:'🗡️', rarity:'rare', desc:'自动索敌发射穿透飞刀', apply:()=>{player.wDagger+=1;}, maxLevel:5, currentLevel:0 },
             { id:'wLightning', name:'雷霆之怒', icon:'⚡', rarity:'legendary', desc:'随机降下闪电劈击敌人', apply:()=>{player.wLightning+=1;}, maxLevel:5, currentLevel:0 },
@@ -1120,8 +1204,7 @@
                 }
             }
 
-            // ================= 副武器逻辑 =================
-            // 1. 烈焰光环
+            // 副武器逻辑
             if (player.wFireOrb > 0) {
                 player.wFireOrbTimer += dt;
                 player.wFireOrbAngle += dt * 3;
@@ -1141,7 +1224,6 @@
                 }
             }
 
-            // 2. 飞羽暗器
             if (player.wDagger > 0) {
                 player.wDaggerTimer += dt;
                 if (player.wDaggerTimer > 1.0) {
@@ -1162,7 +1244,6 @@
                 }
             }
 
-            // 3. 雷霆之怒
             if (player.wLightning > 0) {
                 player.wLightningTimer += dt;
                 if (player.wLightningTimer > 2.0) {
@@ -1171,7 +1252,6 @@
                         if (enemies.length === 0) break;
                         const e = enemies[Math.floor(Math.random() * enemies.length)];
                         if (e) {
-                            // 闪电特效和伤害
                             explosions.push({ x: e.x, y: e.y, r: 5, maxR: 50, life: 0.3, maxLife: 0.3, color: '#aaddff' });
                             dealDamageToEnemy(e, Math.floor(player.swordDamage * 1.5), false, '#aaddff');
                         }
@@ -1179,7 +1259,6 @@
                 }
             }
 
-            // 4. 震荡波
             if (player.wShockwave > 0) {
                 player.wShockwaveTimer += dt;
                 if (player.wShockwaveTimer > 2.5) {
@@ -1196,7 +1275,6 @@
                     }
                 }
             }
-            // ==============================================
 
             if (player.regen > 0 && player.hp < player.maxHp){
                 player.regenTimer += dt;
@@ -1204,6 +1282,7 @@
             }
             if (player.invincible){ player.invTimer -= dt; if (player.invTimer <= 0) player.invincible = false; }
 
+            // 特效更新
             for (let i=particles.length-1; i>=0; i--){ const p=particles[i]; p.life-=dt; if(p.life<=0){particles.splice(i,1);continue;} p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; p.vy+=p.gravity*dt*60; p.vx*=0.97; p.vy*=0.97; }
             for (let i=bloodStains.length-1; i>=0; i--){ const b=bloodStains[i]; b.life-=dt; if(b.life<=0){bloodStains.splice(i,1);continue;} b.alpha=0.55*Math.min(1,b.life/(b.maxLife*0.5)); }
             for (let i=slashArcs.length-1; i>=0; i--){ const a=slashArcs[i]; a.life-=dt; if(a.life<=0)slashArcs.splice(i,1); }
@@ -1212,7 +1291,6 @@
             for (let i=damageNumbers.length-1; i>=0; i--){ const d=damageNumbers[i]; d.life-=dt; d.y+=d.vy*dt*60; d.vy*=0.94; if(d.life<=0)damageNumbers.splice(i,1); }
             for (let i=timeRipples.length-1; i>=0; i--){ const r=timeRipples[i]; r.life-=dt; r.r+=200*dt; if(r.life<=0)timeRipples.splice(i,1); }
 
-            // 飞刀投射物更新
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const p = projectiles[i]; p.life -= dt;
                 if (p.life <= 0) { projectiles.splice(i, 1); continue; }
@@ -1220,7 +1298,7 @@
                 for (const e of enemies) {
                     if (e && Math.hypot(e.x - p.x, e.y - p.y) < e.r + p.r) {
                         dealDamageToEnemy(e, p.dmg, false, '#aaddff');
-                        p.life = 0; // 穿透后消失
+                        p.life = 0;
                         break;
                     }
                 }
@@ -1483,7 +1561,6 @@
             if (player.soulStacks > 0) statuses.push(`💀 +${player.soulStacks}`);
             if (player.echoStrike > 0) statuses.push(`🔮 x${player.echoStrike}`);
             if (player.infiniteEdge) statuses.push(`♾️`);
-            // 副武器状态
             if (player.wFireOrb > 0) statuses.push(`🔥 x${player.wFireOrb}`);
             if (player.wDagger > 0) statuses.push(`🗡️ x${player.wDagger}`);
             if (player.wLightning > 0) statuses.push(`⚡ x${player.wLightning}`);
@@ -1692,7 +1769,6 @@
                 ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
             }
 
-            // 飞刀渲染
             for (const p of projectiles) {
                 const px = p.x - cam.x, py = p.y - cam.y;
                 ctx.save(); ctx.translate(px, py); ctx.rotate(Math.atan2(p.vy, p.vx));
@@ -1732,7 +1808,6 @@
 
             drawPlayerAndSword();
 
-            // 烈焰光环渲染
             if (player.wFireOrb > 0) {
                 for (let i = 0; i < player.wFireOrb; i++) {
                     const ang = player.wFireOrbAngle + (i / player.wFireOrb) * Math.PI * 2;
@@ -1923,7 +1998,8 @@
         window.addEventListener('resize', resize);
         resize();
 
-        resetGame('endless');
+        // 初始时不调用 resetGame，停留在主菜单
+        updateXpUI();
         requestAnimationFrame(loop);
     })();
     </script>
